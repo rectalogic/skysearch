@@ -2,7 +2,7 @@ import { FilesetResolver, TextEmbedder } from "@mediapipe/tasks-text";
 
 async function createEmbedder() {
   const textFiles = await FilesetResolver.forTextTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-text@0.10.22-rc.20250304/wasm",
+    "/wasm",
   );
   // XXX this uses importScripts which is not legal in a worker
   // https://github.com/google-ai-edge/mediapipe/issues/5257
