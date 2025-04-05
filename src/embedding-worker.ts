@@ -1,3 +1,5 @@
+/// <reference lib="webworker" />
+
 import { FilesetResolver, TextEmbedder } from "@mediapipe/tasks-text";
 
 async function createEmbedder() {
