@@ -5,19 +5,16 @@ const ws = new WebSocket(
 );
 
 ws.onmessage = (event) => {
-  try {
-    const data = JSON.parse(event.data);
-    // XXX post a Transferable object? or just raw string and parse in embedding?
+  const data = JSON.parse(event.data);
+  if (data.kind === "commit" && data.commit.operation === "create") {
     postMessage(data);
-  } catch (e) {
-    console.log(`Raw message: ${event.data}`);
   }
 };
 
-ws.onerror = (error) => {
-  console.log("WebSocket Error:", error);
+ws.onerror = (event) => {
+  throw new Error(`Bluesky WebSocket error: ${event}`);
 };
 
-ws.onclose = () => {
-  console.log("Disconnected from Bluesky WebSocket");
+ws.onclose = (event) => {
+  throw new Error(`Disconnected from Bluesky WebSocket: ${event}`);
 };

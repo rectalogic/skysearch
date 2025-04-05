@@ -1,13 +1,22 @@
 /// <reference lib="webworker" />
 
-import { FilesetResolver, TextEmbedder } from "@mediapipe/tasks-text";
+import {
+  FilesetResolver,
+  TextEmbedder,
+  TextEmbedderResult,
+} from "@mediapipe/tasks-text";
 
 async function createEmbedder() {
   const textFiles = await FilesetResolver.forTextTasks(
     "/wasm",
   );
-  // XXX this uses importScripts which is not legal in a worker
+  // TextEmbedder.createFromOptions uses importScripts which is not legal in a module webworker,
+  // so we directly fetch and eval wasmLoaderPath ourselves
   // https://github.com/google-ai-edge/mediapipe/issues/5257
+  const response = await fetch(textFiles.wasmLoaderPath);
+  // This sets globalThis.ModuleFactory used by TextEmbedder.createFromOptions
+  eval?.(await response.text());
+  delete textFiles.wasmLoaderPath;
   return await TextEmbedder.createFromOptions(textFiles, {
     baseOptions: {
       modelAssetPath:
@@ -16,34 +25,35 @@ async function createEmbedder() {
   });
 }
 
-try {
-  const textEmbedder = await createEmbedder();
-  const queryEmbedding = textEmbedder.embed("tariff effects on stock market");
+const textEmbedder = await createEmbedder();
 
-  const jetstreamWorker = new Worker(
-    new URL("jetstream-worker.js", import.meta.url).href,
-    { type: "module", name: "jetstream-worker" },
-  );
+let queryEmbedding: TextEmbedderResult;
+let jetstreamWorker: Worker;
 
-  jetstreamWorker.onmessage = (event) => {
-    // Ensure textEmbedder is accessible here (it is due to closure)
-    const embedding = textEmbedder.embed(event.data.commit.record.text);
-    if (
-      embedding.embeddings && embedding.embeddings[0] &&
-      queryEmbedding.embeddings && queryEmbedding.embeddings[0] &&
-      TextEmbedder.cosineSimilarity(
-          embedding.embeddings[0],
-          queryEmbedding.embeddings[0],
-        ) >= 0.8
-    ) {
-      self.postMessage(event.data);
-    }
-  };
+// Handle new queries. The first query triggers initializing jetstream
+self.onmessage = (event) => {
+  queryEmbedding = textEmbedder.embed(event.data.query);
+  if (!jetstreamWorker) {
+    jetstreamWorker = new Worker(
+      new URL("jetstream-worker.js", import.meta.url).href,
+      { type: "module", name: "jetstream-worker" },
+    );
+    jetstreamWorker.onmessage = jetstreamMessageHandler;
+  }
+};
 
-  console.log(
-    "Embedding worker initialized and listening to Jetstream worker.",
-  );
-} catch (error) {
-  console.error("Error initializing embedding worker:", error);
-  // self.postMessage({ error: "Failed to initialize embedder" });
-}
+const jetstreamMessageHandler = (event: MessageEvent) => {
+  const embedding = textEmbedder.embed(event.data.commit.record.text);
+  if (
+    embedding.embeddings && embedding.embeddings[0] &&
+    queryEmbedding.embeddings && queryEmbedding.embeddings[0] &&
+    TextEmbedder.cosineSimilarity(
+        embedding.embeddings[0],
+        queryEmbedding.embeddings[0],
+      ) >= 0.8
+  ) {
+    self.postMessage(data);
+  }
+};
+
+self.postMessage("ready");
