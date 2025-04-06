@@ -1,26 +1,34 @@
 /// <reference lib="dom" />
 
 import "./style.css";
+import Jetstream from "./jetstream.ts";
+import createEmbedder from "./embedder.ts";
+import EmbeddingManager from "./embedding-manager.ts";
 
 const app = document.querySelector<HTMLDivElement>("#app");
-if (!app) {
-  throw new Error("no app");
-}
+const backlog = document.querySelector<HTMLSpanElement>("#backlog");
 
-const embeddingWorker = new Worker(
-  new URL("embedding-worker.js", import.meta.url).href,
-  { type: "module", name: "embedding-worker" },
+if (!app || !backlog) throw new Error("missing divs");
+
+const textEmbedder = await createEmbedder();
+const embeddingManager = new EmbeddingManager();
+
+//XXX move into textfield
+embeddingManager.query = textEmbedder.embed(
+  "tariffs are tanking the stock market",
 );
 
-embeddingWorker.onmessage = (event) => {
-  if (event.data === "ready") {
-    embeddingWorker.onmessage = embeddingMessageHandler;
-    embeddingWorker.postMessage({
-      "query": "tariffs are tanking the stock market",
-    });
-  }
+embeddingManager.onmessage = (record) => {
+  app.innerHTML = record.commit.record.text;
+  backlog.innerHTML = embeddingManager.messageBacklog.toString();
 };
 
-const embeddingMessageHandler = (event: MessageEvent) => {
-  app.innerHTML = event.data.commit.record.text;
+const jetstream = new Jetstream();
+jetstream.onmessage = (record) => {
+  embeddingManager.addRecord(record);
+};
+
+jetstream.onerror = (event) => {
+  //XXX display alert in UI
+  throw new Error(`Bluesky WebSocket error: ${event}`);
 };
