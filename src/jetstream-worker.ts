@@ -1,25 +1,15 @@
 /// <reference lib="webworker" />
 
-const ws = new WebSocket(
-  "wss://jetstream2.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post",
-);
-let messageCount = 0;
+import Jetstream from "./jetstream.ts";
 
-ws.onmessage = (event) => {
-  messageCount += 1;
-  if (messageCount % 100 === 0) {
-    console.log(`jetstream ${messageCount}`);
+const jetstream = new Jetstream();
+jetstream.onmessage = (data) => {
+  if (jetstream.messageCount % 100 === 0) {
+    console.log(`jetstream ${jetstream.messageCount}`);
   }
-  const data = JSON.parse(event.data);
-  if (data.kind === "commit" && data.commit.operation === "create") {
-    postMessage(data);
-  }
+  postMessage(data);
 };
 
-ws.onerror = (event) => {
+jetstream.onerror = (event) => {
   throw new Error(`Bluesky WebSocket error: ${event}`);
-};
-
-ws.onclose = (event) => {
-  throw new Error(`Disconnected from Bluesky WebSocket: ${event}`);
 };
