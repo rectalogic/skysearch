@@ -3,6 +3,6 @@
     "@mediapipe/tasks-text": "npm:@mediapipe/tasks-text@^0.10.22-rc.20250304"
   },
   "compilerOptions": {
-    "lib": ["es2020"]
+    "lib": ["es2022"]
   }
 }

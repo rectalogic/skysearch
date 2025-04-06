@@ -16,11 +16,13 @@ async function createEmbedder() {
   const response = await fetch(textFiles.wasmLoaderPath);
   // This sets globalThis.ModuleFactory used by TextEmbedder.createFromOptions
   eval?.(await response.text());
+  // @ts-expect-error: Manually loaded wasmLoaderPath
   delete textFiles.wasmLoaderPath;
   return await TextEmbedder.createFromOptions(textFiles, {
     baseOptions: {
       modelAssetPath:
-        `https://storage.googleapis.com/mediapipe-models/text_embedder/universal_sentence_encoder/float32/1/universal_sentence_encoder.tflite`,
+        "https://storage.googleapis.com/mediapipe-models/text_embedder/universal_sentence_encoder/float32/1/universal_sentence_encoder.tflite",
+      // delegate: "GPU",
     },
   });
 }
@@ -42,17 +44,28 @@ self.onmessage = (event) => {
   }
 };
 
+let messageCount = 0;
+
 const jetstreamMessageHandler = (event: MessageEvent) => {
+  messageCount += 1;
+  if (messageCount % 100 === 0) {
+    console.log(`embedding ${messageCount}`);
+  }
   const embedding = textEmbedder.embed(event.data.commit.record.text);
   if (
-    embedding.embeddings && embedding.embeddings[0] &&
-    queryEmbedding.embeddings && queryEmbedding.embeddings[0] &&
-    TextEmbedder.cosineSimilarity(
-        embedding.embeddings[0],
-        queryEmbedding.embeddings[0],
-      ) >= 0.8
+    !(
+      embedding.embeddings && embedding.embeddings[0] &&
+      queryEmbedding.embeddings && queryEmbedding.embeddings[0]
+    )
   ) {
-    self.postMessage(data);
+    return;
+  }
+  const similarity = TextEmbedder.cosineSimilarity(
+    embedding.embeddings[0],
+    queryEmbedding.embeddings[0],
+  );
+  if (similarity >= 0.8) {
+    self.postMessage(event.data);
   }
 };
 

@@ -15,7 +15,9 @@ const embeddingWorker = new Worker(
 embeddingWorker.onmessage = (event) => {
   if (event.data === "ready") {
     embeddingWorker.onmessage = embeddingMessageHandler;
-    embeddingWorker.postMessage({ "query": "tariff effects on stock market" });
+    embeddingWorker.postMessage({
+      "query": "tariffs are tanking the stock market",
+    });
   }
 };
 

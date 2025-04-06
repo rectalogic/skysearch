@@ -2,7 +2,6 @@
   "version": "4",
   "specifiers": {
     "npm:@mediapipe/tasks-text@~0.10.22-rc.20250304": "0.10.22-rc.20250304",
-    "npm:typescript@~5.7.2": "5.7.3",
     "npm:vite-plugin-static-copy@^2.3.0": "2.3.0_vite@6.2.5",
     "npm:vite@^6.2.0": "6.2.5"
   },
@@ -378,9 +377,6 @@
         "is-number"
       ]
     },
-    "typescript@5.7.3": {
-      "integrity": "sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw=="
-    },
     "universalify@2.0.1": {
       "integrity": "sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw=="
     },
@@ -411,7 +407,6 @@
     ],
     "packageJson": {
       "dependencies": [
-        "npm:typescript@~5.7.2",
         "npm:vite-plugin-static-copy@^2.3.0",
         "npm:vite@^6.2.0"
       ]
