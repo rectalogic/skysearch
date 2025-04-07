@@ -5,10 +5,13 @@ export interface CommitCreateEvent {
   time_us: number;
   kind: "commit";
   commit: {
+    rev: string;
     operation: "create";
+    collection: "app.bsky.feed.post";
+    rkey: string;
     record: AppBskyFeedPost.Record;
+    cid: string;
   };
-  cid: string;
 }
 
 export type CommitCreateHandler = ((event: CommitCreateEvent) => void) | null;

@@ -4,11 +4,20 @@ import "./style.css";
 import Jetstream from "./jetstream.ts";
 import createEmbedder from "./embedder.ts";
 import EmbeddingManager from "./embedding-manager.ts";
+declare global {
+  interface Window {
+    // Provided by https://embed.bsky.app/static/embed.js
+    scan(node?: Node): void;
+  }
+}
 
 const app = document.querySelector<HTMLDivElement>("#app");
 const backlog = document.querySelector<HTMLSpanElement>("#backlog");
+const postTemplate = document.querySelector<HTMLTemplateElement>(
+  "#post-template",
+);
 
-if (!app || !backlog) throw new Error("missing divs");
+if (!app || !backlog || !postTemplate) throw new Error("missing elements");
 
 const textEmbedder = await createEmbedder();
 const embeddingManager = new EmbeddingManager();
@@ -20,7 +29,17 @@ embeddingManager.query = textEmbedder.embed(
 embeddingManager.similarity = 0.8;
 
 embeddingManager.onmessage = (event) => {
-  app.innerText = event.commit.record.text;
+  const postContent = postTemplate.content.cloneNode(true) as DocumentFragment;
+  const postContainer = postContent.querySelector("blockquote");
+  if (postContainer && postContent.firstElementChild) {
+    postContainer.setAttribute(
+      "data-bluesky-uri",
+      `at://${event.did}/app.bsky.feed.post/${event.commit.rkey}`,
+    );
+    postContainer.setAttribute("data-bluesky-cid", event.commit.cid);
+    self.scan(postContent);
+    app.replaceChildren(postContent.firstElementChild);
+  }
   backlog.innerText = embeddingManager.messageBacklog.toString();
 };
 

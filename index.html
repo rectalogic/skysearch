@@ -3,11 +3,24 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Vite + TS</title>
+        <script
+            async
+            src="https://embed.bsky.app/static/embed.js"
+            charset="utf-8"
+        ></script>
+        <title>SkySearch</title>
     </head>
     <body>
         <p>Backlog: <span id="backlog"></span></p>
         <div id="app"></div>
+        <template id="post-template">
+            <blockquote
+                class="bluesky-embed"
+                data-bluesky-uri=""
+                data-bluesky-cid=""
+                data-bluesky-embed-color-mode="system"
+            ></blockquote>
+        </template>
         <script type="module" src="/src/main.ts"></script>
     </body>
 </html>
