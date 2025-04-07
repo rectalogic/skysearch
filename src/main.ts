@@ -38,7 +38,10 @@ embeddingManager.onmessage = (event) => {
     );
     postContainer.setAttribute("data-bluesky-cid", event.commit.cid);
     self.scan(postContent);
-    app.replaceChildren(postContent.firstElementChild);
+    app.insertBefore(postContent, app.firstChild);
+    while (app.childElementCount > 10) {
+      app.lastElementChild?.remove();
+    }
   }
   backlog.innerText = embeddingManager.messageBacklog.toString();
 };
