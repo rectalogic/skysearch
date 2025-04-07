@@ -2,7 +2,7 @@
 
 import { TextEmbedder, TextEmbedderResult } from "@mediapipe/tasks-text";
 import createEmbedder from "./embedder.ts";
-import { QueryMessage, RecordMessage, SimilarityMessage } from "./messages.ts";
+import { PostMessage, QueryMessage, SimilarityMessage } from "./messages.ts";
 
 const textEmbedder = await createEmbedder();
 
@@ -12,7 +12,7 @@ let querySimilarity = 0.8;
 self.onmessage = (
   event: MessageEvent<
     | QueryMessage
-    | RecordMessage
+    | PostMessage
     | SimilarityMessage
   >,
 ) => {
@@ -25,13 +25,13 @@ self.onmessage = (
       querySimilarity = event.data.similarity;
       break;
     }
-    case "record": {
+    case "post": {
       if (!queryEmbedding) {
-        self.postMessage({ type: "available", recordMatched: false });
+        self.postMessage({ type: "available", postMatched: false });
         return;
       }
       const embedding = textEmbedder.embed(
-        event.data.record.commit.record.text,
+        event.data.post.text,
       );
       if (
         !(
@@ -39,7 +39,7 @@ self.onmessage = (
           queryEmbedding.embeddings && queryEmbedding.embeddings[0]
         )
       ) {
-        self.postMessage({ type: "available", recordMatched: false });
+        self.postMessage({ type: "available", postMatched: false });
         return;
       }
       const similarity = TextEmbedder.cosineSimilarity(
@@ -48,10 +48,10 @@ self.onmessage = (
       );
       self.postMessage({
         type: "available",
-        recordMatched: similarity >= querySimilarity,
+        postMatched: similarity >= querySimilarity,
       });
     }
   }
 };
 
-self.postMessage({ type: "available", recordMatched: false });
+self.postMessage({ type: "available", postMatched: false });

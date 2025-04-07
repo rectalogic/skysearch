@@ -18,14 +18,14 @@ embeddingManager.query = textEmbedder.embed(
   "tariffs are tanking the stock market",
 );
 
-embeddingManager.onmessage = (record) => {
-  app.innerHTML = record.commit.record.text;
-  backlog.innerHTML = embeddingManager.messageBacklog.toString();
+embeddingManager.onmessage = (post) => {
+  app.innerText = post.text;
+  backlog.innerText = embeddingManager.messageBacklog.toString();
 };
 
 const jetstream = new Jetstream();
-jetstream.onmessage = (record) => {
-  embeddingManager.addRecord(record);
+jetstream.onmessage = (post) => {
+  embeddingManager.addPost(post);
 };
 
 jetstream.onerror = (event) => {

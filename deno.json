@@ -1,6 +1,7 @@
 {
   "imports": {
-    "@mediapipe/tasks-text": "npm:@mediapipe/tasks-text@^0.10.22-rc.20250304"
+    "@mediapipe/tasks-text": "npm:@mediapipe/tasks-text@^0.10.22-rc.20250304",
+    "@atproto/api": "npm:@atproto/api@^0.14.20"
   },
   "compilerOptions": {
     "lib": ["es2022"]

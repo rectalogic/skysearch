@@ -1,10 +1,10 @@
+import { AppBskyFeedPost } from "@atproto/api";
 import { TextEmbedderResult } from "@mediapipe/tasks-text";
-import { CommitCreateEvent } from "./jetstream.ts";
 
-export type MessageHandler = ((data: CommitCreateEvent) => void) | null;
+export type PostHandler = ((post: AppBskyFeedPost.Record) => void) | null;
 
 export interface BaseMessage {
-  type: "query" | "similarity" | "record" | "available";
+  type: "query" | "similarity" | "post" | "available";
 }
 
 export interface QueryMessage extends BaseMessage {
@@ -17,12 +17,12 @@ export interface SimilarityMessage extends BaseMessage {
   similarity: number;
 }
 
-export interface RecordMessage extends BaseMessage {
-  type: "record";
-  record: CommitCreateEvent;
+export interface PostMessage extends BaseMessage {
+  type: "post";
+  post: AppBskyFeedPost.Record;
 }
 
 export interface AvailableMessage extends BaseMessage {
   type: "available";
-  recordMatched: boolean;
+  postMatched: boolean;
 }

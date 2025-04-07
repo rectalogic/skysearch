@@ -1,35 +1,35 @@
 /// <reference lib="dom" />
+import { AppBskyFeedPost } from "@atproto/api";
 import { TextEmbedderResult } from "@mediapipe/tasks-text";
 import {
   AvailableMessage,
-  MessageHandler,
+  PostHandler,
+  PostMessage,
   QueryMessage,
-  RecordMessage,
   SimilarityMessage,
 } from "./messages.ts";
-import { CommitCreateEvent } from "./jetstream.ts";
 
 export default class EmbeddingManager {
   #workers: EmbeddingWorker[] = [];
-  #recordQueue: CommitCreateEvent[] = [];
-  #onmessage: MessageHandler | null = null;
+  #postQueue: AppBskyFeedPost.Record[] = [];
+  #onmessage: PostHandler | null = null;
   #query: TextEmbedderResult | null = null;
   #similarity: number | null = null;
 
   constructor() {
     for (let i = 0; i < navigator.hardwareConcurrency; i++) {
       const worker = new EmbeddingWorker(this, i);
-      worker.onmessage = (record) => {
-        if (record) {
+      worker.onmessage = (post) => {
+        if (post) {
           if (this.#onmessage) {
-            this.#onmessage(record);
+            this.#onmessage(post);
           }
         }
         // This worker is now free, send it any backlog
-        if (this.#recordQueue.length > 0) {
-          const record = this.#recordQueue.shift();
-          if (record) {
-            worker.record = record;
+        if (this.#postQueue.length > 0) {
+          const post = this.#postQueue.shift();
+          if (post) {
+            worker.post = post;
           }
         }
       };
@@ -37,12 +37,12 @@ export default class EmbeddingManager {
     }
   }
 
-  set onmessage(handler: MessageHandler) {
+  set onmessage(handler: PostHandler) {
     this.#onmessage = handler;
   }
 
   get messageBacklog() {
-    return this.#recordQueue.length;
+    return this.#postQueue.length;
   }
 
   set query(query: TextEmbedderResult) {
@@ -65,21 +65,23 @@ export default class EmbeddingManager {
     return this.#similarity;
   }
 
-  addRecord(record: CommitCreateEvent) {
+  addPost(post: AppBskyFeedPost.Record) {
     for (const worker of this.#workers) {
       if (worker.available) {
-        worker.record = record;
+        worker.post = post;
         return;
       }
     }
-    this.#recordQueue.push(record);
+    this.#postQueue.push(post);
   }
 }
 
 interface IEmbeddingWorker extends Omit<Worker, "postMessage"> {
-  postMessage(message: QueryMessage | SimilarityMessage | RecordMessage): void;
+  postMessage(message: QueryMessage | SimilarityMessage | PostMessage): void;
 }
-type RecordHandler = ((record: CommitCreateEvent | null) => void) | null;
+type WorkerPostHandler =
+  | ((post: AppBskyFeedPost.Record | null) => void)
+  | null;
 
 class EmbeddingWorker {
   #id: number;
@@ -87,8 +89,8 @@ class EmbeddingWorker {
   #worker: IEmbeddingWorker;
   #available = false;
   #initialized = false;
-  #record: CommitCreateEvent | null = null;
-  #onmessage: RecordHandler = null;
+  #post: AppBskyFeedPost.Record | null = null;
+  #onmessage: WorkerPostHandler = null;
 
   constructor(manager: EmbeddingManager, id: number) {
     this.#manager = manager;
@@ -107,11 +109,11 @@ class EmbeddingWorker {
           this.similarity = this.#manager.similarity;
         }
       }
-      const record = this.#record;
-      this.#record = null;
+      const post = this.#post;
+      this.#post = null;
       this.#available = true;
       if (this.#onmessage) {
-        this.#onmessage(event.data.recordMatched ? record : null);
+        this.#onmessage(event.data.postMatched ? post : null);
       }
     };
   }
@@ -120,7 +122,7 @@ class EmbeddingWorker {
     return this.#available;
   }
 
-  set onmessage(handler: RecordHandler) {
+  set onmessage(handler: WorkerPostHandler) {
     this.#onmessage = handler;
   }
 
@@ -136,11 +138,11 @@ class EmbeddingWorker {
     }
   }
 
-  set record(record: CommitCreateEvent) {
+  set post(post: AppBskyFeedPost.Record) {
     if (this.#initialized) {
-      this.#record = record;
+      this.#post = post;
       this.#available = false;
-      this.#worker.postMessage({ type: "record", record: record });
+      this.#worker.postMessage({ type: "post", post: post });
     }
   }
 }

@@ -1,14 +1,13 @@
-import { MessageHandler } from "./messages.ts";
+import { AppBskyFeedPost, Did } from "@atproto/api";
+import { PostHandler } from "./messages.ts";
 
 export interface CommitCreateEvent {
-  // did: At.DID;
+  did: Did;
   time_us: number;
   kind: "commit";
   commit: {
     operation: "create";
-    record: {
-      text: string;
-    };
+    record: AppBskyFeedPost.Record;
   };
 }
 
@@ -16,7 +15,7 @@ export type ErrorHandler = ((event: Event) => void) | null;
 
 export default class Jetstream {
   #ws: WebSocket;
-  #onmessage: MessageHandler = null;
+  #onmessage: PostHandler = null;
   #onerror: ErrorHandler = null;
 
   constructor() {
@@ -27,8 +26,12 @@ export default class Jetstream {
     this.#ws.onmessage = (event) => {
       if (this.#onmessage) {
         const data = JSON.parse(event.data);
-        if (data.kind === "commit" && data.commit.operation === "create") {
-          this.#onmessage(data);
+        if (
+          data.kind === "commit" && data.commit.operation === "create" &&
+          AppBskyFeedPost.isRecord(data.commit.record) &&
+          AppBskyFeedPost.validateRecord(data.commit.record).success
+        ) {
+          this.#onmessage(data.commit.record);
         }
       }
     };
@@ -40,7 +43,7 @@ export default class Jetstream {
     };
   }
 
-  set onmessage(handler: MessageHandler) {
+  set onmessage(handler: PostHandler) {
     this.#onmessage = handler;
   }
 
