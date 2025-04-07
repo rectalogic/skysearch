@@ -11,8 +11,53 @@
         <title>SkySearch</title>
     </head>
     <body>
+        <label class="input">
+            <svg
+                class="h-[1em] opacity-50"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+            >
+                <g
+                    stroke-linejoin="round"
+                    stroke-linecap="round"
+                    stroke-width="2.5"
+                    fill="none"
+                    stroke="currentColor"
+                >
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.3-4.3"></path>
+                </g>
+            </svg>
+            <input id="query" type="search" required placeholder="Search" />
+        </label>
+        <button id="search" class="btn">Search</button>
+        <div class="w-full max-w-xs">
+            <input
+                id="similarity"
+                type="range"
+                min="50"
+                max="100"
+                class="range"
+            />
+            <div class="flex justify-between px-2.5 mt-2 text-xs">
+                <span>|</span>
+                <span>|</span>
+                <span>|</span>
+                <span>|</span>
+                <span>|</span>
+                <span>|</span>
+            </div>
+            <div class="flex justify-between px-2.5 mt-2 text-xs">
+                <span>0.5</span>
+                <span>0.6</span>
+                <span>0.7</span>
+                <span>0.8</span>
+                <span>0.9</span>
+                <span>1</span>
+            </div>
+        </div>
         <p>Backlog: <span id="backlog"></span></p>
-        <div id="app"></div>
+        <div id="posts" class="flex flex-col items-center"></div>
         <template id="post-template">
             <blockquote
                 class="bluesky-embed"

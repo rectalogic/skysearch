@@ -1,4 +1,5 @@
 import { viteStaticCopy } from "vite-plugin-static-copy";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -9,6 +10,7 @@ export default defineConfig({
     format: "es",
   },
   plugins: [
+    tailwindcss(),
     viteStaticCopy({
       targets: [
         {

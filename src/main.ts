@@ -11,22 +11,34 @@ declare global {
   }
 }
 
-const app = document.querySelector<HTMLDivElement>("#app");
+const posts = document.querySelector<HTMLDivElement>("#posts");
 const backlog = document.querySelector<HTMLSpanElement>("#backlog");
+const query = document.querySelector<HTMLInputElement>("#query");
+const search = document.querySelector<HTMLButtonElement>("#search");
+const similarity = document.querySelector<HTMLInputElement>("#similarity");
 const postTemplate = document.querySelector<HTMLTemplateElement>(
   "#post-template",
 );
 
-if (!app || !backlog || !postTemplate) throw new Error("missing elements");
+if (!posts || !backlog || !query || !search || !similarity || !postTemplate) {
+  throw new Error("missing elements");
+}
 
 const textEmbedder = await createEmbedder();
 const embeddingManager = new EmbeddingManager();
 
-//XXX move into textfield
-embeddingManager.query = textEmbedder.embed(
-  "tariffs are tanking the stock market",
-);
-embeddingManager.similarity = 0.8;
+search.addEventListener("click", () => {
+  if (query.value) {
+    embeddingManager.query = textEmbedder.embed(
+      query.value,
+    );
+  }
+});
+
+similarity.valueAsNumber = Math.floor(embeddingManager.similarity * 100);
+similarity.addEventListener("change", () => {
+  embeddingManager.similarity = similarity.valueAsNumber / 100.0;
+});
 
 embeddingManager.onmessage = (event) => {
   const postContent = postTemplate.content.cloneNode(true) as DocumentFragment;
@@ -38,9 +50,9 @@ embeddingManager.onmessage = (event) => {
     );
     postContainer.setAttribute("data-bluesky-cid", event.commit.cid);
     self.scan(postContent);
-    app.insertBefore(postContent, app.firstChild);
-    while (app.childElementCount > 10) {
-      app.lastElementChild?.remove();
+    posts.insertBefore(postContent, posts.firstChild);
+    while (posts.childElementCount > 10) {
+      posts.lastElementChild?.remove();
     }
   }
   backlog.innerText = embeddingManager.messageBacklog.toString();
