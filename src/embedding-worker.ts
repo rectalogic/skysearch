@@ -32,7 +32,7 @@ declare global {
 const textEmbedder = await createEmbedder();
 
 let queryEmbedding: TextEmbedderResult;
-let querySimilarity = 0.8;
+let querySimilarity = 0;
 
 self.onmessage = (
   event: MessageEvent<

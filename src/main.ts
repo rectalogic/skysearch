@@ -17,15 +17,16 @@ const embeddingManager = new EmbeddingManager();
 embeddingManager.query = textEmbedder.embed(
   "tariffs are tanking the stock market",
 );
+embeddingManager.similarity = 0.8;
 
-embeddingManager.onmessage = (post) => {
-  app.innerText = post.text;
+embeddingManager.onmessage = (event) => {
+  app.innerText = event.commit.record.text;
   backlog.innerText = embeddingManager.messageBacklog.toString();
 };
 
 const jetstream = new Jetstream();
-jetstream.onmessage = (post) => {
-  embeddingManager.addPost(post);
+jetstream.onmessage = (event) => {
+  embeddingManager.addJetstreamCommit(event);
 };
 
 jetstream.onerror = (event) => {

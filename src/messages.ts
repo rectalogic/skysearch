@@ -1,10 +1,7 @@
-import { AppBskyFeedPost } from "@atproto/api";
 import { TextEmbedderResult } from "@mediapipe/tasks-text";
 
-export type PostHandler = ((post: AppBskyFeedPost.Record) => void) | null;
-
 export interface BaseMessage {
-  type: "query" | "similarity" | "post" | "text" | "available";
+  type: "query" | "similarity" | "text" | "available";
 }
 
 export interface QueryMessage extends BaseMessage {
