@@ -4,6 +4,26 @@ import { TextEmbedder, TextEmbedderResult } from "@mediapipe/tasks-text";
 import createEmbedder from "./embedder.ts";
 import { PostMessage, QueryMessage, SimilarityMessage } from "./messages.ts";
 
+declare global {
+  function postMessage(
+    message: PostMessage,
+    transfer?: Transferable[],
+  ): void;
+
+  interface WorkerGlobalScope {
+    onmessage:
+      | ((
+        this: DedicatedWorkerGlobalScope,
+        ev: MessageEvent<
+          | QueryMessage
+          | PostMessage
+          | SimilarityMessage
+        >,
+      ) => void)
+      | null;
+  }
+}
+
 const textEmbedder = await createEmbedder();
 
 let queryEmbedding: TextEmbedderResult;
