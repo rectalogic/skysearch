@@ -4,9 +4,9 @@ import { TextEmbedderResult } from "@mediapipe/tasks-text";
 import {
   AvailableMessage,
   PostHandler,
-  PostMessage,
   QueryMessage,
   SimilarityMessage,
+  TextMessage,
 } from "./messages.ts";
 
 export default class EmbeddingManager {
@@ -77,7 +77,7 @@ export default class EmbeddingManager {
 }
 
 interface IEmbeddingWorker extends Omit<Worker, "postMessage"> {
-  postMessage(message: QueryMessage | SimilarityMessage | PostMessage): void;
+  postMessage(message: QueryMessage | SimilarityMessage | TextMessage): void;
 }
 type WorkerPostHandler =
   | ((post: AppBskyFeedPost.Record | null) => void)
@@ -142,7 +142,7 @@ class EmbeddingWorker {
     if (this.#initialized) {
       this.#post = post;
       this.#available = false;
-      this.#worker.postMessage({ type: "post", post: post });
+      this.#worker.postMessage({ type: "text", text: post.text });
     }
   }
 }

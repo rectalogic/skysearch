@@ -4,7 +4,7 @@ import { TextEmbedderResult } from "@mediapipe/tasks-text";
 export type PostHandler = ((post: AppBskyFeedPost.Record) => void) | null;
 
 export interface BaseMessage {
-  type: "query" | "similarity" | "post" | "available";
+  type: "query" | "similarity" | "post" | "text" | "available";
 }
 
 export interface QueryMessage extends BaseMessage {
@@ -17,9 +17,9 @@ export interface SimilarityMessage extends BaseMessage {
   similarity: number;
 }
 
-export interface PostMessage extends BaseMessage {
-  type: "post";
-  post: AppBskyFeedPost.Record;
+export interface TextMessage extends BaseMessage {
+  type: "text";
+  text: string;
 }
 
 export interface AvailableMessage extends BaseMessage {

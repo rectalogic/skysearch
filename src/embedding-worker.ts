@@ -2,21 +2,26 @@
 
 import { TextEmbedder, TextEmbedderResult } from "@mediapipe/tasks-text";
 import createEmbedder from "./embedder.ts";
-import { PostMessage, QueryMessage, SimilarityMessage } from "./messages.ts";
+import {
+  AvailableMessage,
+  QueryMessage,
+  SimilarityMessage,
+  TextMessage,
+} from "./messages.ts";
 
 declare global {
-  function postMessage(
-    message: PostMessage,
-    transfer?: Transferable[],
-  ): void;
-
   interface WorkerGlobalScope {
+    postMessage(
+      this: DedicatedWorkerGlobalScope,
+      message: AvailableMessage,
+      transfer?: Transferable[],
+    ): void;
     onmessage:
       | ((
         this: DedicatedWorkerGlobalScope,
         ev: MessageEvent<
           | QueryMessage
-          | PostMessage
+          | TextMessage
           | SimilarityMessage
         >,
       ) => void)
@@ -32,7 +37,7 @@ let querySimilarity = 0.8;
 self.onmessage = (
   event: MessageEvent<
     | QueryMessage
-    | PostMessage
+    | TextMessage
     | SimilarityMessage
   >,
 ) => {
@@ -45,13 +50,13 @@ self.onmessage = (
       querySimilarity = event.data.similarity;
       break;
     }
-    case "post": {
+    case "text": {
       if (!queryEmbedding) {
         self.postMessage({ type: "available", postMatched: false });
         return;
       }
       const embedding = textEmbedder.embed(
-        event.data.post.text,
+        event.data.text,
       );
       if (
         !(
