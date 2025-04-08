@@ -22,3 +22,7 @@ ready to compute text embeddings and compare their similarity to the users query
 * A worker sends a message back indicating if the post embedding was similar
   enough to the users query (based on the similariy range slider the user controls).
   If it is, then append a BlueSky embed displaying the post.
+
+# Development
+
+Install [deno](https://deno.com). Then `deno install` and `deno task dev`.
