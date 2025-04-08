@@ -17,6 +17,7 @@ class SkySearchUI {
 
   readonly postsEl: HTMLDivElement;
   readonly backlogEl: HTMLSpanElement;
+  readonly backlogToastEl: HTMLDivElement;
   readonly queryEl: HTMLInputElement;
   readonly searchEl: HTMLButtonElement;
   readonly similarityEl: HTMLInputElement;
@@ -32,6 +33,7 @@ class SkySearchUI {
   constructor(embeddingManager: EmbeddingManager, textEmbedder: TextEmbedder) {
     this.postsEl = $<HTMLDivElement>("#posts");
     this.backlogEl = $<HTMLSpanElement>("#backlog");
+    this.backlogToastEl = $<HTMLDivElement>("#backlog-toast");
     this.queryEl = $<HTMLInputElement>("#query");
     this.searchEl = $<HTMLButtonElement>("#search");
     this.similarityEl = $<HTMLInputElement>("#similarity");
@@ -111,7 +113,13 @@ class SkySearchUI {
         this.postsEl.lastElementChild?.remove();
       }
     }
-    this.backlogEl.innerText = this.embeddingManager.messageBacklog.toString();
+    if (this.embeddingManager.messageBacklog > 50) {
+      this.backlogEl.innerText = this.embeddingManager.messageBacklog
+        .toString();
+      this.backlogToastEl.classList.remove("hidden");
+    } else {
+      this.backlogToastEl.classList.add("hidden");
+    }
   }
 
   // XXX add support

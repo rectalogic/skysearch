@@ -29,6 +29,13 @@
             </svg>
             <span id="alert-message"></span>
         </div>
+        <div id="backlog-toast" class="hidden toast toast-top toast-end">
+            <div class="alert alert-warning">
+                <span
+                    >Jetstream message backlog <span id="backlog"></span
+                ></span>
+            </div>
+        </div>
         <label class="input">
             <svg
                 class="h-[1em] opacity-50"
@@ -73,10 +80,6 @@
                 <span>0.9</span>
                 <span>1</span>
             </div>
-        </div>
-        <div>
-            Backlog:
-            <span id="backlog" class="badge badge-sm badge-warning"></span>
         </div>
         <div id="posts" class="flex flex-col items-center"></div>
         <template id="post-template">
