@@ -9,10 +9,13 @@ import {
 } from "./messages.ts";
 import { CommitCreateEvent, CommitCreateHandler } from "./jetstream.ts";
 
+export type ErrorHandler = (event: ErrorEvent) => void;
+
 export default class EmbeddingManager {
   #workers: EmbeddingWorker[] = [];
   #eventQueue: CommitCreateEvent[] = [];
   #onmessage: CommitCreateHandler | null = null;
+  #onerror: ErrorHandler | null = null;
   #query: TextEmbedderResult | null = null;
   #similarity = 0.8;
 
@@ -33,12 +36,21 @@ export default class EmbeddingManager {
           }
         }
       };
+      worker.onerror = (event) => {
+        if (this.#onerror) {
+          this.#onerror(event);
+        }
+      };
       this.#workers.push(worker);
     }
   }
 
   set onmessage(handler: CommitCreateHandler) {
     this.#onmessage = handler;
+  }
+
+  set onerror(handler: ErrorHandler) {
+    this.#onerror = handler;
   }
 
   get messageBacklog() {
@@ -92,6 +104,7 @@ class EmbeddingWorker {
   #initialized = false;
   #event: CommitCreateEvent | null = null;
   #onmessage: WorkerCommitCreateHandler = null;
+  #onerror: ErrorHandler | null = null;
 
   constructor(manager: EmbeddingManager, id: number) {
     this.#manager = manager;
@@ -115,6 +128,11 @@ class EmbeddingWorker {
         this.#onmessage(event.data.postMatched ? post : null);
       }
     };
+    this.#worker.onerror = (event) => {
+      if (this.#onerror) {
+        this.#onerror(event);
+      }
+    };
   }
 
   get available() {
@@ -123,6 +141,10 @@ class EmbeddingWorker {
 
   set onmessage(handler: WorkerCommitCreateHandler) {
     this.#onmessage = handler;
+  }
+
+  set onerror(handler: ErrorHandler) {
+    this.#onerror = handler;
   }
 
   set query(query: TextEmbedderResult) {

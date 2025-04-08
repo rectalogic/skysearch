@@ -70,8 +70,7 @@ class SkySearchUI {
     this.alertDismissEl.addEventListener("click", this.hideError.bind(this));
 
     this.embeddingManager.onmessage = this.handleNewPost.bind(this);
-    // XXX Add error handler
-    // this.embeddingManager.onerror = this.handleEmbeddingError.bind(this);
+    this.embeddingManager.onerror = this.handleEmbeddingError.bind(this);
   }
 
   private handleSearch(): void {
@@ -122,10 +121,9 @@ class SkySearchUI {
     }
   }
 
-  // XXX add support
-  // private handleEmbeddingError(event: any): void {
-  //    this.displayError(`Embedding error: ${event}`);
-  // }
+  private handleEmbeddingError(event: ErrorEvent): void {
+    this.displayError(`Embedding error: ${event}`);
+  }
 
   private displayError(error: string): void {
     this.alertMessageEl.innerText = error;
