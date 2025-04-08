@@ -14,6 +14,7 @@
     <body>
         <div id="alert" role="alert" class="hidden alert alert-error">
             <svg
+                id="alert-dismiss"
                 xmlns="http://www.w3.org/2000/svg"
                 class="h-6 w-6 shrink-0 stroke-current"
                 fill="none"
@@ -27,11 +28,6 @@
                 />
             </svg>
             <span id="alert-message"></span>
-            <div>
-                <button id="alert-dismiss" class="btn btn-sm btn-primary">
-                    Dismiss
-                </button>
-            </div>
         </div>
         <label class="input">
             <svg
@@ -52,7 +48,7 @@
             </svg>
             <input id="query" type="search" required placeholder="Search" />
         </label>
-        <button id="search" class="btn">Search</button>
+        <button id="search" class="btn btn-active btn-primary">Search</button>
         <div class="w-full max-w-xs">
             <input
                 id="similarity"

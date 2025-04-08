@@ -23,10 +23,11 @@ class SkySearchUI {
   readonly postTemplateEl: HTMLTemplateElement;
   readonly alertEl: HTMLDivElement;
   readonly alertMessageEl: HTMLSpanElement;
-  readonly alertDismissEl: HTMLButtonElement;
+  readonly alertDismissEl: HTMLElement;
 
   private embeddingManager: EmbeddingManager;
   private textEmbedder: TextEmbedder;
+  private jetstream: Jetstream | null = null;
 
   constructor(embeddingManager: EmbeddingManager, textEmbedder: TextEmbedder) {
     this.postsEl = $<HTMLDivElement>("#posts");
@@ -37,7 +38,7 @@ class SkySearchUI {
     this.postTemplateEl = $<HTMLTemplateElement>("#post-template");
     this.alertEl = $<HTMLDivElement>("#alert");
     this.alertMessageEl = $<HTMLSpanElement>("#alert-message");
-    this.alertDismissEl = $<HTMLButtonElement>("#alert-dismiss");
+    this.alertDismissEl = $<HTMLElement>("#alert-dismiss");
 
     this.embeddingManager = embeddingManager;
     this.textEmbedder = textEmbedder;
@@ -48,18 +49,14 @@ class SkySearchUI {
 
     this.bindEvents();
 
-    this.embeddingManager.onmessage = this.handleNewPost.bind(this);
-    // XXX Add error handler
-    // this.embeddingManager.onerror = this.handleEmbeddingError.bind(this);
-
-    const jetstream = new Jetstream();
-    jetstream.onmessage = (event) => {
-      embeddingManager.addJetstreamCommit(event);
-    };
-
-    jetstream.onerror = (event) => {
-      this.displayError(`Bluesky WebSocket error: ${event}`);
-    };
+    if (document.location.search) {
+      const params = new URLSearchParams(document.location.search);
+      const query = params.get("query");
+      if (query) {
+        this.queryEl.value = query;
+        this.handleSearch();
+      }
+    }
   }
 
   private bindEvents(): void {
@@ -69,10 +66,25 @@ class SkySearchUI {
       this.handleSimilarityChange.bind(this),
     );
     this.alertDismissEl.addEventListener("click", this.hideError.bind(this));
+
+    this.embeddingManager.onmessage = this.handleNewPost.bind(this);
+    // XXX Add error handler
+    // this.embeddingManager.onerror = this.handleEmbeddingError.bind(this);
   }
 
   private handleSearch(): void {
     if (this.queryEl.value) {
+      if (!this.jetstream) {
+        this.jetstream = new Jetstream();
+        this.jetstream.onmessage = (event) => {
+          this.embeddingManager.addJetstreamCommit(event);
+        };
+
+        this.jetstream.onerror = (event) => {
+          this.displayError(`Bluesky WebSocket error: ${event}`);
+        };
+      }
+
       this.embeddingManager.query = this.textEmbedder.embed(this.queryEl.value);
     }
   }
@@ -107,12 +119,12 @@ class SkySearchUI {
   //    this.displayError(`Embedding error: ${event}`);
   // }
 
-  displayError(error: string): void {
+  private displayError(error: string): void {
     this.alertMessageEl.innerText = error;
     this.alertEl.classList.remove("hidden");
   }
 
-  hideError(): void {
+  private hideError(): void {
     this.alertEl.classList.add("hidden");
   }
 }
