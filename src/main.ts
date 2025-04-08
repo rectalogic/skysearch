@@ -22,7 +22,7 @@ class SkySearchUI {
   readonly searchEl: HTMLButtonElement;
   readonly similarityEl: HTMLInputElement;
   readonly postTemplateEl: HTMLTemplateElement;
-  readonly alertEl: HTMLDivElement;
+  readonly alertToastEl: HTMLDivElement;
   readonly alertMessageEl: HTMLSpanElement;
   readonly alertDismissEl: HTMLElement;
 
@@ -38,7 +38,7 @@ class SkySearchUI {
     this.searchEl = $<HTMLButtonElement>("#search");
     this.similarityEl = $<HTMLInputElement>("#similarity");
     this.postTemplateEl = $<HTMLTemplateElement>("#post-template");
-    this.alertEl = $<HTMLDivElement>("#alert");
+    this.alertToastEl = $<HTMLDivElement>("#alert-toast");
     this.alertMessageEl = $<HTMLSpanElement>("#alert-message");
     this.alertDismissEl = $<HTMLElement>("#alert-dismiss");
 
@@ -129,11 +129,11 @@ class SkySearchUI {
 
   private displayError(error: string): void {
     this.alertMessageEl.innerText = error;
-    this.alertEl.classList.remove("hidden");
+    this.alertToastEl.classList.remove("hidden");
   }
 
   private hideError(): void {
-    this.alertEl.classList.add("hidden");
+    this.alertToastEl.classList.add("hidden");
   }
 }
 
