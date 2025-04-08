@@ -57,8 +57,12 @@ export default class EmbeddingManager {
     return this.#eventQueue.length;
   }
 
-  set query(query: TextEmbedderResult) {
+  purgeBacklog() {
     this.#eventQueue = [];
+  }
+
+  set query(query: TextEmbedderResult) {
+    this.purgeBacklog();
     this.#query = query;
     for (const worker of this.#workers) {
       worker.query = query;

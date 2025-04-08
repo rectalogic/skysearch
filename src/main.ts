@@ -15,20 +15,21 @@ declare global {
 class SkySearchUI {
   static MAX_POSTS = 25;
 
-  readonly postsEl: HTMLDivElement;
-  readonly backlogEl: HTMLSpanElement;
-  readonly backlogToastEl: HTMLDivElement;
-  readonly queryEl: HTMLInputElement;
-  readonly searchEl: HTMLButtonElement;
-  readonly similarityEl: HTMLInputElement;
-  readonly postTemplateEl: HTMLTemplateElement;
-  readonly alertToastEl: HTMLDivElement;
-  readonly alertMessageEl: HTMLSpanElement;
-  readonly alertDismissEl: HTMLElement;
+  private postsEl: HTMLDivElement;
+  private backlogEl: HTMLSpanElement;
+  private backlogToastEl: HTMLDivElement;
+  private queryEl: HTMLInputElement;
+  private searchEl: HTMLButtonElement;
+  private similarityEl: HTMLInputElement;
+  private jetstreamToggleEl: HTMLInputElement;
+  private postTemplateEl: HTMLTemplateElement;
+  private alertToastEl: HTMLDivElement;
+  private alertMessageEl: HTMLSpanElement;
+  private alertDismissEl: HTMLElement;
 
   private embeddingManager: EmbeddingManager;
   private textEmbedder: TextEmbedder;
-  private jetstream: Jetstream | null = null;
+  private jetstream: Jetstream;
 
   constructor(embeddingManager: EmbeddingManager, textEmbedder: TextEmbedder) {
     this.postsEl = $<HTMLDivElement>("#posts");
@@ -37,6 +38,7 @@ class SkySearchUI {
     this.queryEl = $<HTMLInputElement>("#query");
     this.searchEl = $<HTMLButtonElement>("#search");
     this.similarityEl = $<HTMLInputElement>("#similarity");
+    this.jetstreamToggleEl = $<HTMLInputElement>("#jetstream-toggle");
     this.postTemplateEl = $<HTMLTemplateElement>("#post-template");
     this.alertToastEl = $<HTMLDivElement>("#alert-toast");
     this.alertMessageEl = $<HTMLSpanElement>("#alert-message");
@@ -44,6 +46,7 @@ class SkySearchUI {
 
     this.embeddingManager = embeddingManager;
     this.textEmbedder = textEmbedder;
+    this.jetstream = new Jetstream();
 
     this.similarityEl.valueAsNumber = Math.floor(
       this.embeddingManager.similarity * 100,
@@ -68,24 +71,31 @@ class SkySearchUI {
       this.handleSimilarityChange.bind(this),
     );
     this.alertDismissEl.addEventListener("click", this.hideError.bind(this));
+    this.jetstreamToggleEl.addEventListener("change", () => {
+      if (this.jetstreamToggleEl.checked) {
+        this.jetstream.startStream();
+      } else {
+        this.jetstream.stopStream();
+        this.embeddingManager.purgeBacklog();
+      }
+    });
 
     this.embeddingManager.onmessage = this.handleNewPost.bind(this);
     this.embeddingManager.onerror = this.handleEmbeddingError.bind(this);
+
+    this.jetstream.onmessage = (event) => {
+      this.embeddingManager.addJetstreamCommit(event);
+    };
+
+    this.jetstream.onerror = (event) => {
+      this.displayError(`Bluesky WebSocket error: ${event}`);
+    };
   }
 
   private handleSearch(): void {
     if (this.queryEl.value) {
-      if (!this.jetstream) {
-        this.jetstream = new Jetstream();
-        this.jetstream.onmessage = (event) => {
-          this.embeddingManager.addJetstreamCommit(event);
-        };
-
-        this.jetstream.onerror = (event) => {
-          this.displayError(`Bluesky WebSocket error: ${event}`);
-        };
-      }
-
+      this.jetstream.startStream();
+      this.jetstreamToggleEl.checked = true;
       this.embeddingManager.query = this.textEmbedder.embed(this.queryEl.value);
     }
   }
