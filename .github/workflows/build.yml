@@ -29,7 +29,7 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Build with Deno
-        run: deno task build
+        run: deno install && deno task build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
