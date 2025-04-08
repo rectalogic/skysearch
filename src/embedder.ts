@@ -2,7 +2,7 @@ import { FilesetResolver, TextEmbedder } from "@mediapipe/tasks-text";
 
 export default async function createEmbedder() {
   const textFiles = await FilesetResolver.forTextTasks(
-    "/wasm",
+    import.meta.env.BASE_URL + "wasm",
   );
   // TextEmbedder.createFromOptions uses importScripts which is not legal in a module webworker,
   // so we directly fetch and eval wasmLoaderPath ourselves
