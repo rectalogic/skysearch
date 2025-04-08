@@ -11,37 +11,60 @@ declare global {
   }
 }
 
-const posts = document.querySelector<HTMLDivElement>("#posts");
-const backlog = document.querySelector<HTMLSpanElement>("#backlog");
-const query = document.querySelector<HTMLInputElement>("#query");
-const search = document.querySelector<HTMLButtonElement>("#search");
-const similarity = document.querySelector<HTMLInputElement>("#similarity");
-const postTemplate = document.querySelector<HTMLTemplateElement>(
+const MAX_POSTS = 25;
+
+const postsEl = document.querySelector<HTMLDivElement>("#posts");
+const backlogEl = document.querySelector<HTMLSpanElement>("#backlog");
+const queryEl = document.querySelector<HTMLInputElement>("#query");
+const searchEl = document.querySelector<HTMLButtonElement>("#search");
+const similarityEl = document.querySelector<HTMLInputElement>("#similarity");
+const postTemplateEl = document.querySelector<HTMLTemplateElement>(
   "#post-template",
 );
-
-if (!posts || !backlog || !query || !search || !similarity || !postTemplate) {
+const alertEl = document.querySelector<HTMLDivElement>("#alert");
+const alertMessageEl = document.querySelector<HTMLSpanElement>(
+  "#alert-message",
+);
+const alertDismissEl = document.querySelector<HTMLButtonElement>(
+  "#alert-dismiss",
+);
+if (
+  !postsEl || !backlogEl || !queryEl || !searchEl || !similarityEl ||
+  !postTemplateEl ||
+  !alertEl || !alertMessageEl || !alertDismissEl
+) {
   throw new Error("missing elements");
 }
+
+const displayError = (error: string) => {
+  alertMessageEl.innerText = error;
+  alertEl.classList.remove("hidden");
+};
+
+alertDismissEl.addEventListener("click", () => {
+  alertEl.classList.add("hidden");
+});
 
 const textEmbedder = await createEmbedder();
 const embeddingManager = new EmbeddingManager();
 
-search.addEventListener("click", () => {
-  if (query.value) {
+searchEl.addEventListener("click", () => {
+  if (queryEl.value) {
     embeddingManager.query = textEmbedder.embed(
-      query.value,
+      queryEl.value,
     );
   }
 });
 
-similarity.valueAsNumber = Math.floor(embeddingManager.similarity * 100);
-similarity.addEventListener("change", () => {
-  embeddingManager.similarity = similarity.valueAsNumber / 100.0;
+similarityEl.valueAsNumber = Math.floor(embeddingManager.similarity * 100);
+similarityEl.addEventListener("change", () => {
+  embeddingManager.similarity = similarityEl.valueAsNumber / 100.0;
 });
 
 embeddingManager.onmessage = (event) => {
-  const postContent = postTemplate.content.cloneNode(true) as DocumentFragment;
+  const postContent = postTemplateEl.content.cloneNode(
+    true,
+  ) as DocumentFragment;
   const postContainer = postContent.querySelector("blockquote");
   if (postContainer && postContent.firstElementChild) {
     postContainer.setAttribute(
@@ -50,13 +73,18 @@ embeddingManager.onmessage = (event) => {
     );
     postContainer.setAttribute("data-bluesky-cid", event.commit.cid);
     self.scan(postContent);
-    posts.insertBefore(postContent, posts.firstChild);
-    while (posts.childElementCount > 10) {
-      posts.lastElementChild?.remove();
+    postsEl.insertBefore(postContent, postsEl.firstChild);
+    while (postsEl.childElementCount > MAX_POSTS) {
+      postsEl.lastElementChild?.remove();
     }
   }
-  backlog.innerText = embeddingManager.messageBacklog.toString();
+  backlogEl.innerText = embeddingManager.messageBacklog.toString();
 };
+
+// XXX add support
+// embeddingManager.onerror = (event) => {
+//   displayError(`Embedding error: ${event}`);
+// };
 
 const jetstream = new Jetstream();
 jetstream.onmessage = (event) => {
@@ -64,6 +92,5 @@ jetstream.onmessage = (event) => {
 };
 
 jetstream.onerror = (event) => {
-  //XXX display alert in UI
-  throw new Error(`Bluesky WebSocket error: ${event}`);
+  displayError(`Bluesky WebSocket error: ${event}`);
 };
