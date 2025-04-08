@@ -1,7 +1,8 @@
 /// <reference lib="dom" />
 
 import "./style.css";
-import Jetstream from "./jetstream.ts";
+import { TextEmbedder } from "@mediapipe/tasks-text";
+import Jetstream, { CommitCreateEvent } from "./jetstream.ts";
 import createEmbedder from "./embedder.ts";
 import EmbeddingManager from "./embedding-manager.ts";
 declare global {
@@ -11,86 +12,124 @@ declare global {
   }
 }
 
-const MAX_POSTS = 25;
+class SkySearchUI {
+  static MAX_POSTS = 25;
 
-const postsEl = document.querySelector<HTMLDivElement>("#posts");
-const backlogEl = document.querySelector<HTMLSpanElement>("#backlog");
-const queryEl = document.querySelector<HTMLInputElement>("#query");
-const searchEl = document.querySelector<HTMLButtonElement>("#search");
-const similarityEl = document.querySelector<HTMLInputElement>("#similarity");
-const postTemplateEl = document.querySelector<HTMLTemplateElement>(
-  "#post-template",
-);
-const alertEl = document.querySelector<HTMLDivElement>("#alert");
-const alertMessageEl = document.querySelector<HTMLSpanElement>(
-  "#alert-message",
-);
-const alertDismissEl = document.querySelector<HTMLButtonElement>(
-  "#alert-dismiss",
-);
-if (
-  !postsEl || !backlogEl || !queryEl || !searchEl || !similarityEl ||
-  !postTemplateEl ||
-  !alertEl || !alertMessageEl || !alertDismissEl
-) {
-  throw new Error("missing elements");
-}
+  readonly postsEl: HTMLDivElement;
+  readonly backlogEl: HTMLSpanElement;
+  readonly queryEl: HTMLInputElement;
+  readonly searchEl: HTMLButtonElement;
+  readonly similarityEl: HTMLInputElement;
+  readonly postTemplateEl: HTMLTemplateElement;
+  readonly alertEl: HTMLDivElement;
+  readonly alertMessageEl: HTMLSpanElement;
+  readonly alertDismissEl: HTMLButtonElement;
 
-const displayError = (error: string) => {
-  alertMessageEl.innerText = error;
-  alertEl.classList.remove("hidden");
-};
+  private embeddingManager: EmbeddingManager;
+  private textEmbedder: TextEmbedder;
 
-alertDismissEl.addEventListener("click", () => {
-  alertEl.classList.add("hidden");
-});
+  constructor(embeddingManager: EmbeddingManager, textEmbedder: TextEmbedder) {
+    this.postsEl = $<HTMLDivElement>("#posts");
+    this.backlogEl = $<HTMLSpanElement>("#backlog");
+    this.queryEl = $<HTMLInputElement>("#query");
+    this.searchEl = $<HTMLButtonElement>("#search");
+    this.similarityEl = $<HTMLInputElement>("#similarity");
+    this.postTemplateEl = $<HTMLTemplateElement>("#post-template");
+    this.alertEl = $<HTMLDivElement>("#alert");
+    this.alertMessageEl = $<HTMLSpanElement>("#alert-message");
+    this.alertDismissEl = $<HTMLButtonElement>("#alert-dismiss");
 
-const textEmbedder = await createEmbedder();
-const embeddingManager = new EmbeddingManager();
+    this.embeddingManager = embeddingManager;
+    this.textEmbedder = textEmbedder;
 
-searchEl.addEventListener("click", () => {
-  if (queryEl.value) {
-    embeddingManager.query = textEmbedder.embed(
-      queryEl.value,
+    this.similarityEl.valueAsNumber = Math.floor(
+      this.embeddingManager.similarity * 100,
     );
+
+    this.bindEvents();
+
+    this.embeddingManager.onmessage = this.handleNewPost.bind(this);
+    // XXX Add error handler
+    // this.embeddingManager.onerror = this.handleEmbeddingError.bind(this);
+
+    const jetstream = new Jetstream();
+    jetstream.onmessage = (event) => {
+      embeddingManager.addJetstreamCommit(event);
+    };
+
+    jetstream.onerror = (event) => {
+      this.displayError(`Bluesky WebSocket error: ${event}`);
+    };
   }
-});
 
-similarityEl.valueAsNumber = Math.floor(embeddingManager.similarity * 100);
-similarityEl.addEventListener("change", () => {
-  embeddingManager.similarity = similarityEl.valueAsNumber / 100.0;
-});
-
-embeddingManager.onmessage = (event) => {
-  const postContent = postTemplateEl.content.cloneNode(
-    true,
-  ) as DocumentFragment;
-  const postContainer = postContent.querySelector("blockquote");
-  if (postContainer && postContent.firstElementChild) {
-    postContainer.setAttribute(
-      "data-bluesky-uri",
-      `at://${event.did}/app.bsky.feed.post/${event.commit.rkey}`,
+  private bindEvents(): void {
+    this.searchEl.addEventListener("click", this.handleSearch.bind(this));
+    this.similarityEl.addEventListener(
+      "change",
+      this.handleSimilarityChange.bind(this),
     );
-    postContainer.setAttribute("data-bluesky-cid", event.commit.cid);
-    self.scan(postContent);
-    postsEl.insertBefore(postContent, postsEl.firstChild);
-    while (postsEl.childElementCount > MAX_POSTS) {
-      postsEl.lastElementChild?.remove();
+    this.alertDismissEl.addEventListener("click", this.hideError.bind(this));
+  }
+
+  private handleSearch(): void {
+    if (this.queryEl.value) {
+      this.embeddingManager.query = this.textEmbedder.embed(this.queryEl.value);
     }
   }
-  backlogEl.innerText = embeddingManager.messageBacklog.toString();
-};
 
-// XXX add support
-// embeddingManager.onerror = (event) => {
-//   displayError(`Embedding error: ${event}`);
-// };
+  private handleSimilarityChange(): void {
+    this.embeddingManager.similarity = this.similarityEl.valueAsNumber / 100.0;
+  }
 
-const jetstream = new Jetstream();
-jetstream.onmessage = (event) => {
-  embeddingManager.addJetstreamCommit(event);
-};
+  private handleNewPost(event: CommitCreateEvent): void {
+    const postContent = this.postTemplateEl.content.cloneNode(
+      true,
+    ) as DocumentFragment;
+    const postContainer = $<HTMLQuoteElement>("blockquote", postContent);
 
-jetstream.onerror = (event) => {
-  displayError(`Bluesky WebSocket error: ${event}`);
-};
+    if (postContent.firstElementChild) {
+      postContainer.setAttribute(
+        "data-bluesky-uri",
+        `at://${event.did}/app.bsky.feed.post/${event.commit.rkey}`,
+      );
+      postContainer.setAttribute("data-bluesky-cid", event.commit.cid);
+      self.scan(postContent);
+      this.postsEl.insertBefore(postContent, this.postsEl.firstChild);
+      while (this.postsEl.childElementCount > SkySearchUI.MAX_POSTS) {
+        this.postsEl.lastElementChild?.remove();
+      }
+    }
+    this.backlogEl.innerText = this.embeddingManager.messageBacklog.toString();
+  }
+
+  // XXX add support
+  // private handleEmbeddingError(event: any): void {
+  //    this.displayError(`Embedding error: ${event}`);
+  // }
+
+  displayError(error: string): void {
+    this.alertMessageEl.innerText = error;
+    this.alertEl.classList.remove("hidden");
+  }
+
+  hideError(): void {
+    this.alertEl.classList.add("hidden");
+  }
+}
+
+function $<T extends Element>(
+  selector: string,
+  context: ParentNode = document,
+): T {
+  const element = context.querySelector<T>(selector);
+  if (!element) {
+    throw new Error(`Element with selector "${selector}" not found.`);
+  }
+  return element;
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const textEmbedder = await createEmbedder();
+  const embeddingManager = new EmbeddingManager();
+  new SkySearchUI(embeddingManager, textEmbedder);
+});
