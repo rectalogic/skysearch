@@ -14,6 +14,7 @@ declare global {
 
 class SkySearchUI {
   static MAX_POSTS = 25;
+  static BACKLOG_WARNING = 50;
 
   private postsEl: HTMLDivElement;
   private backlogEl: HTMLSpanElement;
@@ -77,6 +78,7 @@ class SkySearchUI {
       } else {
         this.jetstream.stopStream();
         this.embeddingManager.purgeBacklog();
+        this.updateBacklog();
       }
     });
 
@@ -122,7 +124,11 @@ class SkySearchUI {
         this.postsEl.lastElementChild?.remove();
       }
     }
-    if (this.embeddingManager.messageBacklog > 50) {
+    this.updateBacklog();
+  }
+
+  private updateBacklog() {
+    if (this.embeddingManager.messageBacklog > SkySearchUI.BACKLOG_WARNING) {
       this.backlogEl.innerText = this.embeddingManager.messageBacklog
         .toString();
       this.backlogToastEl.classList.remove("hidden");
