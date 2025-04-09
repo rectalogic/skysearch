@@ -2,18 +2,13 @@
 
 import { TextEmbedder, TextEmbedderResult } from "@mediapipe/tasks-text";
 import createEmbedder from "./embedder.ts";
-import {
-  AvailableMessage,
-  QueryMessage,
-  SimilarityMessage,
-  TextMessage,
-} from "./messages.ts";
+import { QueryMessage, SimilarityMessage, TextMessage } from "./messages.ts";
 
 declare global {
   interface WorkerGlobalScope {
     postMessage(
       this: DedicatedWorkerGlobalScope,
-      message: AvailableMessage,
+      message: SimilarityMessage,
       transfer?: Transferable[],
     ): void;
     onmessage:
@@ -22,7 +17,6 @@ declare global {
         ev: MessageEvent<
           | QueryMessage
           | TextMessage
-          | SimilarityMessage
         >,
       ) => void)
       | null;
@@ -32,13 +26,11 @@ declare global {
 const textEmbedder = await createEmbedder();
 
 let queryEmbedding: TextEmbedderResult;
-let querySimilarity = 0;
 
 self.onmessage = (
   event: MessageEvent<
     | QueryMessage
     | TextMessage
-    | SimilarityMessage
   >,
 ) => {
   switch (event.data.type) {
@@ -46,13 +38,9 @@ self.onmessage = (
       queryEmbedding = event.data.query;
       break;
     }
-    case "similarity": {
-      querySimilarity = event.data.similarity;
-      break;
-    }
     case "text": {
       if (!queryEmbedding) {
-        self.postMessage({ type: "available", postMatched: false });
+        self.postMessage({ type: "similarity", similarity: -1 });
         return;
       }
       const embedding = textEmbedder.embed(
@@ -64,7 +52,7 @@ self.onmessage = (
           queryEmbedding.embeddings && queryEmbedding.embeddings[0]
         )
       ) {
-        self.postMessage({ type: "available", postMatched: false });
+        self.postMessage({ type: "similarity", similarity: -1 });
         return;
       }
       const similarity = TextEmbedder.cosineSimilarity(
@@ -72,11 +60,11 @@ self.onmessage = (
         queryEmbedding.embeddings[0],
       );
       self.postMessage({
-        type: "available",
-        postMatched: similarity >= querySimilarity,
+        type: "similarity",
+        similarity: similarity,
       });
     }
   }
 };
 
-self.postMessage({ type: "available", postMatched: false });
+self.postMessage({ type: "similarity", similarity: -1 });

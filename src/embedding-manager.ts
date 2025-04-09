@@ -1,12 +1,7 @@
 /// <reference lib="dom" />
 
 import { TextEmbedderResult } from "@mediapipe/tasks-text";
-import {
-  AvailableMessage,
-  QueryMessage,
-  SimilarityMessage,
-  TextMessage,
-} from "./messages.ts";
+import { QueryMessage, SimilarityMessage, TextMessage } from "./messages.ts";
 import { CommitCreateEvent, CommitCreateHandler } from "./jetstream.ts";
 
 export type ErrorHandler = (event: ErrorEvent) => void;
@@ -74,9 +69,6 @@ export default class EmbeddingManager {
 
   set similarity(similarity: number) {
     this.#similarity = similarity;
-    for (const worker of this.#workers) {
-      worker.similarity = similarity;
-    }
   }
   get similarity(): number {
     return this.#similarity;
@@ -94,7 +86,7 @@ export default class EmbeddingManager {
 }
 
 interface IEmbeddingWorker extends Omit<Worker, "postMessage"> {
-  postMessage(message: QueryMessage | SimilarityMessage | TextMessage): void;
+  postMessage(message: QueryMessage | TextMessage): void;
 }
 export type WorkerCommitCreateHandler =
   | ((event: CommitCreateEvent | null) => void)
@@ -117,19 +109,20 @@ class EmbeddingWorker {
       new URL("embedding-worker.js", import.meta.url).href,
       { type: "module", name: `embedding-worker-${id}` },
     ) as IEmbeddingWorker;
-    this.#worker.onmessage = (event: MessageEvent<AvailableMessage>) => {
+    this.#worker.onmessage = (event: MessageEvent<SimilarityMessage>) => {
       if (!this.#initialized) {
         this.#initialized = true;
         if (this.#manager.query !== null) {
           this.query = this.#manager.query;
         }
-        this.similarity = this.#manager.similarity;
       }
       const post = this.#event;
       this.#event = null;
       this.#available = true;
       if (this.#onmessage) {
-        this.#onmessage(event.data.postMatched ? post : null);
+        this.#onmessage(
+          event.data.similarity >= this.#manager.similarity ? post : null,
+        );
       }
     };
     this.#worker.onerror = (event) => {
@@ -154,12 +147,6 @@ class EmbeddingWorker {
   set query(query: TextEmbedderResult) {
     if (this.#initialized) {
       this.#worker.postMessage({ type: "query", query: query });
-    }
-  }
-
-  set similarity(similarity: number) {
-    if (this.#initialized) {
-      this.#worker.postMessage({ type: "similarity", similarity: similarity });
     }
   }
 
