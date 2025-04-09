@@ -1,6 +1,6 @@
 import { AppBskyFeedPost, Did } from "@atproto/api";
 
-export interface CommitCreateEvent {
+interface CommitCreateEvent {
   did: Did;
   time_us: number;
   kind: "commit";
@@ -14,12 +14,17 @@ export interface CommitCreateEvent {
   };
 }
 
-export type CommitCreateHandler = ((event: CommitCreateEvent) => void) | null;
+export interface BlueskyPost {
+  uri: string;
+  cid: string;
+  text: string;
+}
+export type BlueskyPostHandler = ((event: BlueskyPost) => void) | null;
 export type ErrorHandler = ((event: Event) => void) | null;
 
 export default class Jetstream {
   #ws: WebSocket | null = null;
-  #onmessage: CommitCreateHandler = null;
+  #onmessage: BlueskyPostHandler = null;
   #onerror: ErrorHandler = null;
 
   startStream() {
@@ -50,7 +55,11 @@ export default class Jetstream {
         data.commit.record.langs &&
         data.commit.record.langs.includes("en")
       ) {
-        this.#onmessage(data);
+        this.#onmessage({
+          uri: `at://${data.did}/app.bsky.feed.post/${data.commit.rkey}`,
+          cid: data.commit.cid,
+          text: data.commit.record.text,
+        });
       }
     }
   }
@@ -61,7 +70,7 @@ export default class Jetstream {
     }
   }
 
-  set onmessage(handler: CommitCreateHandler) {
+  set onmessage(handler: BlueskyPostHandler) {
     this.#onmessage = handler;
   }
 

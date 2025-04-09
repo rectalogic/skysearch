@@ -2,7 +2,7 @@
 
 import "./style.css";
 import { TextEmbedder } from "@mediapipe/tasks-text";
-import Jetstream, { CommitCreateEvent } from "./jetstream.ts";
+import Jetstream, { BlueskyPost } from "./jetstream.ts";
 import createEmbedder from "./embedder.ts";
 import EmbeddingManager from "./embedding-manager.ts";
 declare global {
@@ -106,7 +106,7 @@ class SkySearchUI {
     this.embeddingManager.similarity = this.similarityEl.valueAsNumber / 100.0;
   }
 
-  private handleNewPost(event: CommitCreateEvent): void {
+  private handleNewPost(event: BlueskyPost): void {
     const postContent = this.postTemplateEl.content.cloneNode(
       true,
     ) as DocumentFragment;
@@ -115,9 +115,9 @@ class SkySearchUI {
     if (postContent.firstElementChild) {
       postContainer.setAttribute(
         "data-bluesky-uri",
-        `at://${event.did}/app.bsky.feed.post/${event.commit.rkey}`,
+        event.uri,
       );
-      postContainer.setAttribute("data-bluesky-cid", event.commit.cid);
+      postContainer.setAttribute("data-bluesky-cid", event.cid);
       self.scan(postContent);
       this.postsEl.insertBefore(postContent, this.postsEl.firstChild);
       while (this.postsEl.childElementCount > SkySearchUI.MAX_POSTS) {

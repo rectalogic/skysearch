@@ -2,14 +2,14 @@
 
 import { TextEmbedderResult } from "@mediapipe/tasks-text";
 import { QueryMessage, SimilarityMessage, TextMessage } from "./messages.ts";
-import { CommitCreateEvent, CommitCreateHandler } from "./jetstream.ts";
+import { BlueskyPost, BlueskyPostHandler } from "./jetstream.ts";
 
 export type ErrorHandler = (event: ErrorEvent) => void;
 
 export default class EmbeddingManager {
   #workers: EmbeddingWorker[] = [];
-  #eventQueue: CommitCreateEvent[] = [];
-  #onmessage: CommitCreateHandler | null = null;
+  #eventQueue: BlueskyPost[] = [];
+  #onmessage: BlueskyPostHandler | null = null;
   #onerror: ErrorHandler | null = null;
   #query: TextEmbedderResult | null = null;
   #similarity = 0.8;
@@ -40,7 +40,7 @@ export default class EmbeddingManager {
     }
   }
 
-  set onmessage(handler: CommitCreateHandler) {
+  set onmessage(handler: BlueskyPostHandler) {
     this.#onmessage = handler;
   }
 
@@ -74,7 +74,7 @@ export default class EmbeddingManager {
     return this.#similarity;
   }
 
-  addJetstreamCommit(event: CommitCreateEvent) {
+  addJetstreamCommit(event: BlueskyPost) {
     for (const worker of this.#workers) {
       if (worker.available) {
         worker.event = event;
@@ -88,8 +88,8 @@ export default class EmbeddingManager {
 interface IEmbeddingWorker extends Omit<Worker, "postMessage"> {
   postMessage(message: QueryMessage | TextMessage): void;
 }
-export type WorkerCommitCreateHandler =
-  | ((event: CommitCreateEvent | null) => void)
+export type WorkerBlueskyPostHandler =
+  | ((event: BlueskyPost | null) => void)
   | null;
 
 class EmbeddingWorker {
@@ -98,8 +98,8 @@ class EmbeddingWorker {
   #worker: IEmbeddingWorker;
   #available = false;
   #initialized = false;
-  #event: CommitCreateEvent | null = null;
-  #onmessage: WorkerCommitCreateHandler = null;
+  #event: BlueskyPost | null = null;
+  #onmessage: WorkerBlueskyPostHandler = null;
   #onerror: ErrorHandler | null = null;
 
   constructor(manager: EmbeddingManager, id: number) {
@@ -136,7 +136,7 @@ class EmbeddingWorker {
     return this.#available;
   }
 
-  set onmessage(handler: WorkerCommitCreateHandler) {
+  set onmessage(handler: WorkerBlueskyPostHandler) {
     this.#onmessage = handler;
   }
 
@@ -150,13 +150,13 @@ class EmbeddingWorker {
     }
   }
 
-  set event(event: CommitCreateEvent) {
+  set event(event: BlueskyPost) {
     if (this.#initialized) {
       this.#event = event;
       this.#available = false;
       this.#worker.postMessage({
         type: "text",
-        text: event.commit.record.text,
+        text: event.text,
       });
     }
   }
