@@ -48,18 +48,24 @@ export default class Jetstream {
   private handleMessage(event: MessageEvent<string>) {
     if (this.#onmessage) {
       const data = JSON.parse(event.data);
+      const record: unknown = data?.commit?.record;
       if (
-        data.kind === "commit" && data.commit.operation === "create" &&
-        AppBskyFeedPost.isRecord(data.commit.record) &&
-        data.commit.record.text.length >= 20 &&
-        data.commit.record.langs &&
-        data.commit.record.langs.includes("en")
+        data?.kind === "commit" && data?.commit?.operation === "create"
       ) {
-        this.#onmessage({
-          uri: `at://${data.did}/app.bsky.feed.post/${data.commit.rkey}`,
-          cid: data.commit.cid,
-          text: data.commit.record.text,
-        });
+        if (AppBskyFeedPost.isRecord(record)) {
+          const event: CommitCreateEvent = data;
+          if (
+            event.commit.record.text.length >= 20 &&
+            event.commit.record.langs &&
+            event.commit.record.langs.includes("en")
+          ) {
+            this.#onmessage({
+              uri: `at://${event.did}/app.bsky.feed.post/${event.commit.rkey}`,
+              cid: event.commit.cid,
+              text: event.commit.record.text,
+            });
+          }
+        }
       }
     }
   }
