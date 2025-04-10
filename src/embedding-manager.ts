@@ -2,14 +2,17 @@
 
 import { TextEmbedderResult } from "@mediapipe/tasks-text";
 import { QueryMessage, SimilarityMessage, TextMessage } from "./messages.ts";
-import { BlueskyPost, BlueskyPostHandler } from "./jetstream.ts";
+import { BlueskyPost } from "./jetstream.ts";
 
 export type ErrorHandler = (event: ErrorEvent) => void;
+export type BlueskyPostResultHandler =
+  | ((post: BlueskyPost, similarity: number) => void)
+  | null;
 
 export default class EmbeddingManager {
   #workers: EmbeddingWorker[] = [];
   #eventQueue: BlueskyPost[] = [];
-  #onmessage: BlueskyPostHandler | null = null;
+  #onmessage: BlueskyPostResultHandler | null = null;
   #onerror: ErrorHandler | null = null;
   #query: TextEmbedderResult | null = null;
   #similarity = 0.8;
@@ -17,10 +20,10 @@ export default class EmbeddingManager {
   constructor() {
     for (let i = 0; i < navigator.hardwareConcurrency; i++) {
       const worker = new EmbeddingWorker(this, i);
-      worker.onmessage = (event) => {
-        if (event) {
+      worker.onmessage = (post, similarity) => {
+        if (post) {
           if (this.#onmessage) {
-            this.#onmessage(event);
+            this.#onmessage(post, similarity);
           }
         }
         // This worker is now free, send it any backlog
@@ -40,7 +43,7 @@ export default class EmbeddingManager {
     }
   }
 
-  set onmessage(handler: BlueskyPostHandler) {
+  set onmessage(handler: BlueskyPostResultHandler) {
     this.#onmessage = handler;
   }
 
@@ -88,8 +91,9 @@ export default class EmbeddingManager {
 interface IEmbeddingWorker extends Omit<Worker, "postMessage"> {
   postMessage(message: QueryMessage | TextMessage): void;
 }
-export type WorkerBlueskyPostHandler =
-  | ((event: BlueskyPost | null) => void)
+
+type WorkerBlueskyPostResultHandler =
+  | ((post: BlueskyPost | null, similarity: number) => void)
   | null;
 
 class EmbeddingWorker {
@@ -99,7 +103,7 @@ class EmbeddingWorker {
   #available = false;
   #initialized = false;
   #event: BlueskyPost | null = null;
-  #onmessage: WorkerBlueskyPostHandler = null;
+  #onmessage: WorkerBlueskyPostResultHandler = null;
   #onerror: ErrorHandler | null = null;
 
   constructor(manager: EmbeddingManager, id: number) {
@@ -122,6 +126,7 @@ class EmbeddingWorker {
       if (this.#onmessage) {
         this.#onmessage(
           event.data.similarity >= this.#manager.similarity ? post : null,
+          event.data.similarity,
         );
       }
     };
@@ -136,7 +141,7 @@ class EmbeddingWorker {
     return this.#available;
   }
 
-  set onmessage(handler: WorkerBlueskyPostHandler) {
+  set onmessage(handler: WorkerBlueskyPostResultHandler) {
     this.#onmessage = handler;
   }
 

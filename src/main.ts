@@ -106,24 +106,24 @@ class SkySearchUI {
     this.embeddingManager.similarity = this.similarityEl.valueAsNumber / 100.0;
   }
 
-  private handleNewPost(event: BlueskyPost): void {
+  private handleNewPost(post: BlueskyPost, similarity: number): void {
     const postContent = this.postTemplateEl.content.cloneNode(
       true,
     ) as DocumentFragment;
     const postContainer = $<HTMLQuoteElement>("blockquote", postContent);
-
-    if (postContent.firstElementChild) {
-      postContainer.setAttribute(
-        "data-bluesky-uri",
-        event.uri,
-      );
-      postContainer.setAttribute("data-bluesky-cid", event.cid);
-      self.scan(postContent);
-      this.postsEl.insertBefore(postContent, this.postsEl.firstChild);
-      while (this.postsEl.childElementCount > SkySearchUI.MAX_POSTS) {
-        this.postsEl.lastElementChild?.remove();
-      }
+    const postSimilarity = $<HTMLQuoteElement>("#post-similarity", postContent);
+    postSimilarity.innerText = similarity.toFixed(2);
+    postContainer.setAttribute(
+      "data-bluesky-uri",
+      post.uri,
+    );
+    postContainer.setAttribute("data-bluesky-cid", post.cid);
+    self.scan(postContent);
+    this.postsEl.insertBefore(postContent, this.postsEl.firstChild);
+    while (this.postsEl.childElementCount > SkySearchUI.MAX_POSTS) {
+      this.postsEl.lastElementChild?.remove();
     }
+
     this.updateBacklog();
   }
 

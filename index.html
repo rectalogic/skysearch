@@ -11,7 +11,7 @@
         <script type="module" src="/src/main.ts"></script>
         <title>SkySearch</title>
     </head>
-    <div class="px-4">
+    <body class="px-4">
         <div id="alert-toast" class="hidden toast toast-top toast-end">
             <div role="alert" class="alert alert-error">
                 <svg
@@ -37,7 +37,6 @@
                 <span>Backlog <span id="backlog"></span></span>
             </div>
         </div>
-
 
         <div class="flex flex-col items-center">
             <fieldset
@@ -109,8 +108,12 @@
                 </div>
 
                 <label class="fieldset-label">
-                  <input id="jetstream-toggle" type="checkbox" class="toggle" />
-                  Jetstream
+                    <input
+                        id="jetstream-toggle"
+                        type="checkbox"
+                        class="toggle"
+                    />
+                    Jetstream
                 </label>
             </fieldset>
         </div>
@@ -118,12 +121,19 @@
         <div id="posts" class="flex flex-col items-center"></div>
 
         <template id="post-template">
-            <blockquote
-                class="bluesky-embed"
-                data-bluesky-uri=""
-                data-bluesky-cid=""
-                data-bluesky-embed-color-mode="light"
-            ></blockquote>
+            <div
+                class="indicator indicator-center w-full flex flex-col items-center"
+            >
+                <span class="indicator-item badge badge-soft badge-info"
+                    >Similarity <span id="post-similarity"></span
+                ></span>
+                <blockquote
+                    class="bluesky-embed"
+                    data-bluesky-uri=""
+                    data-bluesky-cid=""
+                    data-bluesky-embed-color-mode="light"
+                ></blockquote>
+            </div>
         </template>
     </body>
 </html>
